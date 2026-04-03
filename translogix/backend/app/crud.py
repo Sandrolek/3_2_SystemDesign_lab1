@@ -277,6 +277,16 @@ def complete_route(db: Session, route_id: int) -> Optional[Route]:
     for stop in route.stops:
         if stop.order.status not in (OrderStatus.delivered, OrderStatus.failed, OrderStatus.cancelled):
             stop.order.status = OrderStatus.delivered
+        # Create delivery if missing (e.g. assigned before this fix)
+        if not stop.order.delivery:
+            delivery = Delivery(
+                order_id=stop.order.id,
+                route_id=route.id,
+                courier_id=route.courier_id,
+                status=DeliveryStatus.delivered,
+                actual_delivery_time=now,
+            )
+            db.add(delivery)
     db.commit()
     db.refresh(route)
     return route
